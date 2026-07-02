@@ -40,6 +40,16 @@ features:
 ingress:
   rules:
   - component:
+      name: lms-frontend
+    match:
+      path:
+        prefix: /lms
+  - component:
+      name: lms-api
+    match:
+      path:
+        prefix: /lms-api
+  - component:
       name: web-frontend
     match:
       path:
@@ -123,3 +133,56 @@ services:
   name: kantaka-auth
   run_command: gunicorn app:app --bind 0.0.0.0:8080 --workers 2
   source_dir: /services/kantaka-auth
+- build_command: npm install && npm run build
+  environment_slug: node-js
+  envs:
+  - key: NODE_VERSION
+    scope: BUILD_TIME
+    value: "22"
+  - key: NEXT_PUBLIC_API_URL
+    scope: RUN_AND_BUILD_TIME
+    value: https://kantaka-sodhana.app/lms-api/api
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: Sumanth-tks/lms-portal
+  http_port: 3000
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-0.5gb
+  name: lms-frontend
+  run_command: npx next start --port 3000
+  source_dir: /client
+- build_command: npm install && npx prisma generate
+  environment_slug: node-js
+  envs:
+  - key: NODE_VERSION
+    scope: BUILD_TIME
+    value: "22"
+  - key: DATABASE_URL
+    scope: RUN_AND_BUILD_TIME
+    value: ${LMS_DATABASE_URL}
+  - key: JWT_SECRET
+    scope: RUN_AND_BUILD_TIME
+    value: ${LMS_JWT_SECRET}
+  - key: JWT_REFRESH_SECRET
+    scope: RUN_AND_BUILD_TIME
+    value: ${LMS_JWT_REFRESH_SECRET}
+  - key: PORT
+    scope: RUN_AND_BUILD_TIME
+    value: "5001"
+  - key: CLIENT_URL
+    scope: RUN_AND_BUILD_TIME
+    value: https://kantaka-sodhana.app
+  - key: NODE_ENV
+    scope: RUN_AND_BUILD_TIME
+    value: production
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: Sumanth-tks/lms-portal
+  http_port: 5001
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-0.5gb
+  name: lms-api
+  run_command: node src/index.js
+  source_dir: /server
